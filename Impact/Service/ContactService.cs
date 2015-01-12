@@ -3,19 +3,21 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Domain;
 using Infrastructure;
-using Repository;
+
 
 namespace Service
 {
+    public interface IContactService
+    {
+    }
     public class ContactService : IContactService
     {
-        private IContactRepository _contactRepository;
-        private IUnitOfWork<CRMContext> _unitOfWork;
-        public ContactService(IUnitOfWork<CRMContext> unitOfWork, IContactRepository contactRepository)
+        private readonly IRepository<Contact> _contactRepository;
+        public ContactService( IRepository<Contact> contactRepository)
         {
             this._contactRepository = contactRepository;
-            this._unitOfWork = unitOfWork;
         }
     }
 }

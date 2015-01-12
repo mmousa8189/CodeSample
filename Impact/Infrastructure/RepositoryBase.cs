@@ -6,70 +6,151 @@ using System.Data.Entity;
 using System.Data.Entity.Infrastructure;
 using System.Linq;
 using System.Linq.Expressions;
+using Infrastructure.Core;
 
 namespace Infrastructure
 {
-    public abstract class RepositoryBase<T, U>
-        where T : class
-        where U : DbContext, new()
+    public class Repository<T>
+         : DisposableBase, IRepository<T> where T : class
     {
-        private U _dataContext;
-        private readonly IDbSet<T> _dbset;
-        protected RepositoryBase(IDatabaseFactory<U> databaseFactory)
+        public Repository(DbContext context)
         {
-            DatabaseFactory = databaseFactory;
-            _dbset = DataContext.Set<T>();
+            _context = context;
+            _dbSet = _context.Set<T>();
         }
 
-        protected IDatabaseFactory<U> DatabaseFactory
+        private readonly DbContext _context;
+        protected readonly DbSet<T> _dbSet;
+
+        public object GetBaseContext()
         {
-            get;
-            private set;
+            return _context;
         }
 
-        protected U DataContext
+        public IQueryable<T> GetQuery()
         {
-            get { return _dataContext ?? (_dataContext = DatabaseFactory.Get()); }
+            return _dbSet;
         }
-        public virtual void Add(T entity)
+
+        public IEnumerable<T> GetAll()
         {
-            _dbset.Add(entity);
+            return _dbSet.AsEnumerable();
         }
-        public virtual void Update(T entity)
+
+        public IEnumerable<T> GetAll<TProperty>(Expression<Func<T, TProperty>> includePath)
         {
-            _dbset.Attach(entity);
-            _dataContext.Entry(entity).State = EntityState.Modified;
+            return _dbSet.Include<T, TProperty>(includePath);
         }
-        public virtual void Delete(T entity)
+
+        public IEnumerable<T> GetPage<TKey>(int pageIndex, int pageSize, Expression<Func<T, TKey>> orderBy)
         {
-            _dbset.Remove(entity);
+            return GetQuery().OrderBy(orderBy).Skip(pageIndex * pageSize).Take(pageSize);
         }
-        public virtual void Delete(Expression<Func<T, bool>> where)
+
+        public IEnumerable<T> Where(Expression<Func<T, bool>> where)
         {
-            IEnumerable<T> objects = _dbset.Where<T>(where).AsEnumerable();
-            foreach (T obj in objects)
-                _dbset.Remove(obj);
+            return _dbSet.Where(where);
         }
-        public virtual T GetById(long id)
+
+        public T Single(Expression<Func<T, bool>> where)
         {
-            return _dbset.Find(id);
+            return _dbSet.Single(where);
         }
-        public virtual T GetById(string id)
+
+        public T First(Expression<Func<T, bool>> where)
         {
-            return _dbset.Find(id);
+            return _dbSet.First(where);
         }
-        public virtual IEnumerable<T> GetAll()
+
+        public T FirstOrDefault(Expression<Func<T, bool>> where)
         {
-            return _dbset.ToList();
+            return _dbSet.FirstOrDefault(where);
         }
-        public virtual IEnumerable<T> GetMany(Expression<Func<T, bool>> where)
+
+        public virtual T GetById(params object[] id)
         {
-            return _dbset.Where(where).ToList();
+            var e = _dbSet.Find(id);
+            return e;
         }
-        public virtual T Get(Expression<Func<T, bool>> where)
+
+        public void Detach(T entity)
         {
-            return _dbset.Where(where).FirstOrDefault<T>();
+            throw new NotImplementedException();
         }
-      
+
+        public virtual void Delete(object id)
+        {
+            T entity = GetById(id);
+            Delete(entity);
+        }
+
+        public void Delete(T entity)
+        {
+            AttachIfNeeded(entity);
+            _dbSet.Remove(entity);
+        }
+
+        public void ExecuteSql(string sqlQuery, params object[] parameters)
+        {
+            _context.Database.ExecuteSqlCommand(sqlQuery, parameters);
+        }
+
+        public void Insert(T entity)
+        {
+            _dbSet.Add(entity);
+        }
+
+        public void Update(T entity)
+        {
+            var entry = _context.Entry<T>(entity);
+
+            var oCtx = (_context as System.Data.Entity.Infrastructure.IObjectContextAdapter).ObjectContext;
+            var stateManager = oCtx.ObjectStateManager;
+
+            var key = oCtx.CreateEntityKey(oCtx.CreateObjectSet<T>().EntitySet.Name, entity);
+
+            if (entry.State == EntityState.Detached)
+            {
+                var set = _context.Set<T>();
+                T attachedEntity = set.Find(key.EntityKeyValues.Select(v => v.Value).ToArray());
+
+                if (attachedEntity != null)
+                {
+                    var attachedEntry = _context.Entry(attachedEntity);
+                    attachedEntry.CurrentValues.SetValues(entity);
+                }
+                else
+                {
+                    entry.State = EntityState.Modified; // This should attach entity
+                }
+            }
+
+            //An object with the same key already exists in the ObjectStateManager. The ObjectStateManager cannot track multiple objects with the same key.
+            //_dbSet.Attach(entity);
+            //_context.Entry(entity).State = EntityState.Modified;
+        }
+
+
+        public void Save()
+        {
+            _context.SaveChanges();
+        }
+
+        public virtual IEnumerable<T> GetWithSql(string sql, params object[] parameters)
+        {
+            return _dbSet.SqlQuery(sql, parameters).ToList();
+        }
+
+        protected override void OnDisposing(bool disposing)
+        {
+            if (_context.IsNotNull())
+                _context.Dispose();
+        }
+
+        private void AttachIfNeeded(T entity)
+        {
+            if (_context.Entry(entity).State == EntityState.Detached)
+                _dbSet.Attach(entity);
+        }
     }
 }

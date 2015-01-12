@@ -17,7 +17,7 @@ namespace Infrastructure
         {
             this.Configuration.ProxyCreationEnabled = true;
             this.Configuration.AutoDetectChangesEnabled = true;
-            Database.SetInitializer<CRMContext>(new CRMContextInitializer());
+            Database.SetInitializer<CRMContext>(null);
         }
 
         public virtual void Commit()

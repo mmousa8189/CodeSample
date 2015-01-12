@@ -40,6 +40,7 @@
     <Reference Include="System.ComponentModel.DataAnnotations" />
     <Reference Include="System.Core" />
     <Reference Include="System.Data.Entity" />
+    <Reference Include="System.Web.Mvc, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
@@ -47,11 +48,11 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Contracts\IDatabaseFactory.cs" />
     <Compile Include="Contracts\IRepository.cs" />
-    <Compile Include="Contracts\IUnitOfWork.cs" />
+    <Compile Include="Core\DisposableBase.cs" />
+    <Compile Include="Core\ObjectExtensions.cs" />
+    <Compile Include="Core\StringExtensions.cs" />
     <Compile Include="CRMContext.cs" />
-    <Compile Include="DatabaseFactory.cs" />
     <Compile Include="Disposable.cs" />
     <Compile Include="Migrations\201307020746038_InitialCreate.cs" />
     <Compile Include="Migrations\201307020746038_InitialCreate.Designer.cs">

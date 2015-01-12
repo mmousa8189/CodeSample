@@ -6,8 +6,8 @@ using Autofac;
 using Autofac.Integration.Mvc;
 using Autofac.Integration.WebApi;
 using CRM.Api;
+using Domain;
 using Infrastructure;
-using Repository;
 using Service;
 using WebMatrix.WebData;
 
@@ -35,25 +35,37 @@ namespace CRM.App_Start
             var builder = new ContainerBuilder();
             //Now register all depedencies to your custom IoC container
 
-            builder.RegisterType<DatabaseFactory<CRMContext>>()
-                   .As<IDatabaseFactory<CRMContext>>()
-                   .InstancePerHttpRequest();
+            //register mvc controller
+            builder.RegisterControllers(typeof(MvcApplication).Assembly);
 
+            builder.RegisterAssemblyTypes(typeof(MvcApplication).Assembly)
+               .AsImplementedInterfaces();
 
-            builder.RegisterType<UnitOfWork<CRMContext>>().As<IUnitOfWork<CRMContext>>().WithParameter("databaseFactor", new DatabaseFactory<CRMContext>()).InstancePerHttpRequest();
-
-            builder.RegisterAssemblyTypes(typeof(AccountRepository).Assembly)
-          .Where(t => t.Name.EndsWith("Repository"))
-          .AsImplementedInterfaces().InstancePerHttpRequest();
-
-            builder.RegisterAssemblyTypes(typeof(AccountService).Assembly)
-                   .Where(t => t.Name.EndsWith("Service"))
-                   .AsImplementedInterfaces().InstancePerHttpRequest();
-
-            builder.RegisterControllers(Assembly.GetExecutingAssembly());
+            builder.RegisterModelBinderProvider();
 
             // Register the Web API controllers.
-            builder.RegisterApiControllers(typeof(ManageAccountController).Assembly);
+            builder.RegisterApiControllers(Assembly.GetExecutingAssembly());
+            builder.RegisterType<CRMContext>().As<DbContext>().InstancePerDependency();
+            builder.Register(c => new CRMContext()).InstancePerDependency();
+
+            builder.RegisterGeneric(typeof(Repository<>))
+                  .As(typeof(IRepository<>)).InstancePerDependency();
+
+            //Model
+            builder.RegisterAssemblyTypes(typeof(Contact).Assembly)
+                   .Where(t => t.Name.EndsWith("Domain"))
+                   .AsImplementedInterfaces().InstancePerDependency();
+
+
+            //Infrastructure
+            builder.RegisterAssemblyTypes(typeof(CRMContext).Assembly)
+                   .Where(t => t.Name.EndsWith("Infrastructure"))
+                   .AsImplementedInterfaces().InstancePerDependency();
+
+            //Service
+            builder.RegisterAssemblyTypes(typeof(AccountService).Assembly)
+                   .Where(t => t.Name.EndsWith("Service"))
+                   .AsImplementedInterfaces().InstancePerDependency();
 
             var containerBuilder = builder.Build();
 

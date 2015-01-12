@@ -6,23 +6,28 @@ using System.Text;
 using System.Threading.Tasks;
 using Domain;
 using Infrastructure;
-using Repository;
 
 namespace Service
 {
+    public interface IAccountService
+    {
+        List<Account> GetAll();
+        bool Update(Account account);
+        bool Delete(int id);
+        bool Add(Account account);
+
+    }
     public class AccountService : IAccountService
     {
-        private IAccountRepository _accountRepository;
-        private IUnitOfWork<CRMContext> _unitOfWork;
-        public AccountService(IUnitOfWork<CRMContext> unitOfWork, IAccountRepository accountRepository)
+        private readonly IRepository<Account> _accountRepository;
+        public AccountService(IRepository<Account> accountRepository)
         {
             this._accountRepository = accountRepository;
-            this._unitOfWork = unitOfWork;
         }
 
         public List<Account> GetAll()
         {
-            return _accountRepository.GetMany(a => a.IsActive).ToList();
+            return _accountRepository.GetQuery().Where(a => a.IsActive).ToList();
         }
 
 
@@ -37,7 +42,7 @@ namespace Service
             accountToUpdate.AccountStatus = account.AccountStatus;
 
             _accountRepository.Update(accountToUpdate);
-            _unitOfWork.Commit();
+            _accountRepository.Save();
             return true;
         }
 
@@ -47,7 +52,7 @@ namespace Service
             var account = _accountRepository.GetById(id);
             account.IsActive = false;
             _accountRepository.Update(account);
-            _unitOfWork.Commit();
+            _accountRepository.Save();
 
 
             return true;
@@ -55,8 +60,8 @@ namespace Service
 
         public bool Add(Account account)
         {
-            _accountRepository.Add(account);
-            _unitOfWork.Commit();
+            _accountRepository.Insert(account);
+            _accountRepository.Save();
             return true;
         }
     }

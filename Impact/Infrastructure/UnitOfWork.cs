@@ -1,52 +1,54 @@
 ﻿using System;
 using System.Data.Entity;
+using System.Data.Entity.Validation;
+using System.Diagnostics;
+using System.Web.Mvc;
+using Infrastructure.Core;
 
 
 namespace Infrastructure
 {
-    public class UnitOfWork<T> : IUnitOfWork<T> where T : DbContext, new()
+    public interface IUnitOfWork : IDisposable
     {
-        private readonly IDatabaseFactory<T> _databaseFactory;
-        private T _dataContext;
+        void Commit();
+    }
+    public class UnitOfWork : DisposableBase, IUnitOfWork
+    {
+        private readonly DbContext _context;
 
-        public UnitOfWork()
+        public UnitOfWork(DbContext context)
         {
-
-        }
-
-        public UnitOfWork(IDatabaseFactory<T> databaseFactory)
-        {
-            this._databaseFactory = databaseFactory;
-            _dataContext = _databaseFactory.Get();
-        }
-
-        protected T DataContext
-        {
-            get { return _dataContext ?? (_dataContext = _databaseFactory.Get()); }
+            _context = context;
         }
 
         public void Commit()
         {
-            _dataContext.SaveChanges();
-        }
-        private bool _disposed = false;
-
-        protected virtual void Dispose(bool disposing)
-        {
-            if (!this._disposed)
+            try
             {
-                if (disposing)
+                _context.SaveChanges();
+            }
+            catch (DbEntityValidationException e)
+            {
+                foreach (var dbEntityValidationResult in e.EntityValidationErrors)
                 {
-                    _dataContext.Dispose();
+                    foreach (var dbValidationError in dbEntityValidationResult.ValidationErrors)
+                    {
+                        // very bad
+                        Console.WriteLine(dbValidationError.ErrorMessage);
+                    }
                 }
             }
-            this._disposed = true;
         }
 
-        public void Dispose()
+        public static IUnitOfWork Begin()
         {
-            Dispose(true);
-            GC.SuppressFinalize(this);
+            return DependencyResolver.Current.GetService<IUnitOfWork>(); ;
+        }
+
+        protected override void OnDisposing(bool disposing)
+        {
+            if (_context.IsNotNull())
+                _context.Dispose();
         }
     }
 }
