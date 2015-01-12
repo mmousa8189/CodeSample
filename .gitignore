@@ -2,6 +2,10 @@
 /Impact/CRM/obj
 /Impact/Domain/bin
 /Impact/Domain/obj
+/Impact/Service/bin
+/Impact/Service/obj
+/Impact/Infrastructure/bin
+/Impact/Infrastructure/obj
 obj
 Repository
 obj
