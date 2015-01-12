@@ -412,10 +412,6 @@
       <Project>{4a1d198c-b321-4c88-89e3-b583341b12d8}</Project>
       <Name>Infrastructure</Name>
     </ProjectReference>
-    <ProjectReference Include="..\Repository\Repository.csproj">
-      <Project>{dc2e2e3a-38a8-423a-b775-d0709c82661d}</Project>
-      <Name>Repository</Name>
-    </ProjectReference>
     <ProjectReference Include="..\Service\Service.csproj">
       <Project>{1b19b9f0-ba35-4864-9e22-f41570782336}</Project>
       <Name>Service</Name>
